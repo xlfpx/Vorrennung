@@ -1,32 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.Permissions;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Vorrennung.Daniel;
+
 namespace Vorrennung
 {
     public partial class ModernUI : Form
     {
         VideoBeschleuniger beschleuniger = new VideoBeschleuniger();
         MultipleFileChooser fileChooser = new MultipleFileChooser();
-        String ffmpegOrt;
-        String ffprobeOrt;
-        String indatei, outdatei;
+        string ffmpegOrt;
+        string ffprobeOrt;
+        string indatei, outdatei;
         Infographikfenster infofenster = new Infographikfenster();
-        String shortcutinitzustand;
+        string shortcutinitzustand;
         bool applyparams = true;
         bool bootingUp = true;
-        bool geoeffnet = false;
-        bool askForSimultan = false;
+        bool geoeffnet;
+        bool askForSimultan;
         int simpleSize = 260;
         int expertSize = 400;
         NumericUpDown[] updowns = new NumericUpDown[12];
@@ -34,7 +32,6 @@ namespace Vorrennung
         public ModernUI()
         {
             InitializeComponent();
-            //System.Diagnostics.Trace.WriteLine("MÖP?");
             
             trackbars[0] = trackBar1;
             trackbars[1] = trackBar2;
@@ -48,61 +45,55 @@ namespace Vorrennung
             trackbars[9] = trackBar10;
             trackbars[10] = trackBar11;
             trackbars[11] = trackBar12;
-            for (int i = 0; i < updowns.Length; i++)
+            for (var i = 0; i < updowns.Length; i++)
             {
-                updowns[i] = new NumericUpDown();
-                updowns[i].Parent = tableLayoutPanel1;
+                updowns[i] = new NumericUpDown {Parent = tableLayoutPanel1};
                 updowns[i].Size = new Size(50,updowns[i].Height);
                 updowns[i].ValueChanged += numericupdownchanged;
                 tableLayoutPanel1.Controls.Add(updowns[i], tableLayoutPanel1.GetColumn(trackbars[i]) - 1, tableLayoutPanel1.GetRow(trackbars[i]));
                 updowns[i].Anchor = AnchorStyles.Top;
             }
             
-               for (int i=0;i< trackbars.Count() ;i++){
-                    
-                        double tmp = 0;
-                     //   System.Diagnostics.Trace.WriteLine("MÖP!");
-                        getSetTrackBarValue(trackbars[i], ref tmp, false, true, 5, true,updowns[i]);
-                    
-                }
-            
+            for (var i = 0; i < trackbars.Count(); i++){
+                double tmp = 0; 
+                getSetTrackBarValue(trackbars[i], ref tmp, false, true, 5, true,updowns[i]);
+            }
+
             infofenster.Show();
             infofenster.Hide();
-
 
             beschleuniger.gesammtFortschrittChanged += gesammtfortschrittchanged;
             beschleuniger.teilFortschrittChanged += teilfortschrittchanged;
             beschleuniger.lautstaerkeVeraendert += volChanged;
             beschleuniger.loadParamsFromProperties();
-            System.Diagnostics.Trace.WriteLine("_"+beschleuniger.ffmpegPfad + "-");
+            Trace.WriteLine($"_{beschleuniger.ffmpegPfad}-");
             receiveParams();
             beschleuniger.beschleunigungVeraendert += speedChanged;
             bootingUp = false;
-            this.Text = this.Tag + " - Version " + Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            Text = $@"{Tag} - Version {Assembly.GetExecutingAssembly().GetName().Version}";
         }
-        bool ignorechangeNumericChange=false;
+        bool ignorechangeNumericChange;
         public void numericupdownchanged(object sender,EventArgs e)
         {
-            //System.Diagnostics.Trace.WriteLine("Möp°^°");
             if (ignorechangeNumericChange) { return; }
            // System.Diagnostics.Trace.WriteLine("numericupdowncall");
-            for (int i = 0; i < updowns.Length; i++)
+            for (var i = 0; i < updowns.Length; i++)
             {
                 if (updowns[i] == sender)
                 {
-                    double w=(double)updowns[i].Value ;
+                    var w=(double)updowns[i].Value ;
                     getSetTrackBarValue(trackbars[i],ref w,true);
                     sendParams(true,false);
                     break;
                 }
             }
         }
-        public String getTimeCode(int seconds)
+        public string getTimeCode(int seconds)
         {
-            int stunden = (int)Math.Floor(seconds / 3600.0);
-            int minuten = ((int)Math.Floor(seconds / 60.0)) % 60;
-            int sekunden = seconds % 60;
-            String ergebnis = stunden.ToString("D2") + ":" + minuten.ToString("D2") + ":" + sekunden.ToString("D2");
+            var stunden = (int)Math.Floor(seconds / 3600.0);
+            var minuten = (int)Math.Floor(seconds / 60.0) % 60;
+            var sekunden = seconds % 60;
+            var ergebnis = $"{stunden:D2}:{minuten:D2}:{sekunden:D2}";
             return ergebnis;
 
         }
@@ -121,15 +112,15 @@ namespace Vorrennung
         /// <returns>Den übertragenen Wert.</returns>
         public double getSetTrackBarValue(TrackBar bar, ref double value, bool set, bool init = false,int tickcount=10,bool directreturn=true,NumericUpDown updown=null)
         {
-            bool oldchange = ignorechangeNumericChange;
+            var oldchange = ignorechangeNumericChange;
             ignorechangeNumericChange = true;
-            String[] trennung = ((String)bar.Tag).Split(',');
-            double min = double.Parse(trennung[0]);
-            double max = double.Parse(trennung[1]);
-            double schritt = double.Parse(trennung[2],System.Globalization.NumberStyles.Any,CultureInfo.InvariantCulture);
+            var trennung = ((string)bar.Tag).Split(',');
+            var min = double.Parse(trennung[0]);
+            var max = double.Parse(trennung[1]);
+            var schritt = double.Parse(trennung[2],NumberStyles.Any,CultureInfo.InvariantCulture);
             if (init)
             {
-                int schrittzahl = (int)Math.Floor ((max - min) / schritt);
+                var schrittzahl = (int)Math.Floor ((max - min) / schritt);
                 bar.Minimum = 0;
                 //bar.Value = 0;
                 bar.Maximum = schrittzahl;
@@ -149,8 +140,9 @@ namespace Vorrennung
             }
             double ergebnis;
             if (set ){
-                if (value < min || value > max) { throw new ArgumentException("Der Wert "+value+" liegt nicht im Wertebereich ["+min+","+max+"]");}
-                int ziel =(int) Math.Round((value - min) / schritt);
+                if (value < min || value > max) { throw new ArgumentException(
+                    $"Der Wert {value} liegt nicht im Wertebereich [{min},{max}]");}
+                var ziel =(int) Math.Round((value - min) / schritt);
                // System.Diagnostics.Trace.WriteLine("write: "+ziel+" "+bar.Value+" "+value);
                 bar.Value = ziel;
                 ergebnis = ziel * schritt + min;
@@ -171,11 +163,11 @@ namespace Vorrennung
 
         public void speedChanged(object sender, List<double> parameter, double spielzeit, double zeitunterteilung, double samplingrate)
         {
-            this.Invoke (new Action(()=>{
+            Invoke (new Action(()=>{
                 double ersparnis = 0;
                 ersparnis = beschleuniger.dauer - spielzeit * beschleuniger.beschleunigungsParameter.minspeed;
-                label3.Text = "Vorraussichtliche Dauer: " + getTimeCode((int)spielzeit);
-                label4.Text = "Zeitersparnis : " + getTimeCode((int)ersparnis);
+                label3.Text = $"Vorraussichtliche Dauer: {getTimeCode((int) spielzeit)}";
+                label4.Text = $"Zeitersparnis : {getTimeCode((int) ersparnis)}";
                 infofenster.setBeschleunigung(parameter);
             }));
         }
@@ -184,8 +176,8 @@ namespace Vorrennung
             infofenster.setVolumes(parameter);
         }
 
-        int lastges = 0;
-        int lastteil = 0;
+        int lastges;
+        int lastteil;
         public void gesammtfortschrittchanged(object sender, double wert)
         {
             if ((int)(wert * 100) != lastges)
@@ -193,7 +185,7 @@ namespace Vorrennung
                 lastges = (int)(wert * 100);
 
               //  System.Diagnostics.Trace.WriteLine("geschanged");
-                this.Invoke(new Action(() => toolStripProgressBar1.Value = (int)(wert * 100)));
+                Invoke(new Action(() => toolStripProgressBar1.Value = (int)(wert * 100)));
             }
         }
         public void teilfortschrittchanged(object sender, double wert)
@@ -203,10 +195,10 @@ namespace Vorrennung
                 lastteil = (int)(wert * 100);
 
                 //System.Diagnostics.Trace.WriteLine("teilchanged");
-                this.Invoke(new Action(() => toolStripProgressBar2.Value = (int)(wert * 100)));
+                Invoke(new Action(() => toolStripProgressBar2.Value = (int)(wert * 100)));
             }
         }
-        bool arbeitend = false;
+        bool arbeitend;
         public void sendParams(bool apply=true,bool applytoupdowns=true)
         {
             
@@ -259,20 +251,20 @@ namespace Vorrennung
             //infofenster.setHighLowVolume(beschleuniger.beschleunigungsParameter.leise, beschleuniger.beschleunigungsParameter.laut);
             ignorechangeNumericChange = false;
             //System.Diagnostics.Trace.WriteLine("endsendparams");
-            if (apply && !arbeitend) { arbeitend = true; doInBackground(new Action(() => { beschleuniger.refresh(); arbeitend = false; }), false); }
+            if (apply && !arbeitend) { arbeitend = true; doInBackground(() => { beschleuniger.refresh(); arbeitend = false; }, false); }
             setTexte();
         }
         void setTexte()
         {
-            label10.Text = label10.Tag+"";// +" " + beschleuniger.beschleunigungsParameter.minspeed;
-            label8.Text = label8.Tag + "";// + " " + beschleuniger.beschleunigungsParameter.leise;
-            label9.Text = label9.Tag + "";//+ " " + beschleuniger.beschleunigungsParameter.maxspeed;
-            label7.Text = label7.Tag + "";//+" " + beschleuniger.beschleunigungsParameter.laut ;
-            label6.Text = label6.Tag + "";//+ " " + beschleuniger.beschleunigungsParameter.minpausenspeed;
-            label5.Text = label5.Tag + "";//+ " " + beschleuniger.beschleunigungsParameter.intensity;
-            label11.Text = label11.Tag + "";// + " " + beschleuniger.beschleunigungsParameter.maxableitung;
-            label12.Text = label12.Tag + "";//+ " " + beschleuniger.beschleunigungsParameter.ableitungsglaettung;
-            label13.Text = label13.Tag + "";//+ " " + beschleuniger.beschleunigungsParameter.minableitung;
+            label10.Text = $"{label10.Tag}";// +" " + beschleuniger.beschleunigungsParameter.minspeed;
+            label8.Text = $"{label8.Tag}";// + " " + beschleuniger.beschleunigungsParameter.leise;
+            label9.Text = $"{label9.Tag}";//+ " " + beschleuniger.beschleunigungsParameter.maxspeed;
+            label7.Text = $"{label7.Tag}";//+" " + beschleuniger.beschleunigungsParameter.laut ;
+            label6.Text = $"{label6.Tag}";//+ " " + beschleuniger.beschleunigungsParameter.minpausenspeed;
+            label5.Text = $"{label5.Tag}";//+ " " + beschleuniger.beschleunigungsParameter.intensity;
+            label11.Text = $"{label11.Tag}";// + " " + beschleuniger.beschleunigungsParameter.maxableitung;
+            label12.Text = $"{label12.Tag}";//+ " " + beschleuniger.beschleunigungsParameter.ableitungsglaettung;
+            label13.Text = $"{label13.Tag}";//+ " " + beschleuniger.beschleunigungsParameter.minableitung;
             infofenster.setHighLowVolume(beschleuniger.beschleunigungsParameter.leise, beschleuniger.beschleunigungsParameter.laut);
         }
         public void receiveParams()
@@ -400,64 +392,63 @@ namespace Vorrennung
 
         private void beschleunigenToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            
         }
+        
         void ffmpeginfobox()
         {
             MessageBox.Show(@"Dieses Programm benötigt eine funktionierende installation von FFmpeg. Falls FFmpeg installiert ist (oder als Portableversion vorhanden ist), dann reicht es einfach die Dateien FFmpeg.exe & FFprobe.exe in das Vorrennungfenster zu ziehen.");
         }
+        
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
         {
             if ((!File.Exists(ffmpegOrt)||!File.Exists(ffprobeOrt ))&&Properties.Settings.Default.PruefePfade ) { ffmpeginfobox(); return; }
             
-            label1.Text = "Dateiname: " + openFileDialog1.FileName.Split(Path.DirectorySeparatorChar).Last();
-            doInBackground(new Action(() =>
+            label1.Text = $"Dateiname: {openFileDialog1.FileName.Split(Path.DirectorySeparatorChar).Last()}";
+            doInBackground(() =>
             {
-              indatei = openFileDialog1.FileName;
-            bool lockit=false;
-              if (geoeffnet&&askForSimultan )
-              { lockit = MessageBox.Show("Simultan zur letzten Datei beschleunigen(überschreibt Audiospur)?", "", MessageBoxButtons.YesNo) == DialogResult.Yes; }
-              beschleuniger.setInputFileName(indatei,lockit); 
-              this.Invoke(new Action(() => label2.Text = "Dauer: " + getTimeCode(beschleuniger.dauer)));
-              if (!geoeffnet) { this.Invoke(new Action(() => switchFastButtonText())); }
-              geoeffnet = true;
+                indatei = openFileDialog1.FileName; 
+                var lockit = false;
+                if (geoeffnet && askForSimultan ) 
+                    lockit = MessageBox.Show("Simultan zur letzten Datei beschleunigen? (überschreibt Audiospur)", "", MessageBoxButtons.YesNo) == DialogResult.Yes;
+              
+                beschleuniger.setInputFileName(indatei,lockit); 
+                Invoke(new Action(() => label2.Text = $"Dauer: {getTimeCode(beschleuniger.dauer)}"));
+                if (!geoeffnet) { Invoke(new Action(() => switchFastButtonText())); }
+                geoeffnet = true;
                 if (!Properties.Settings.Default.Expertenmodus)
-                {
-                    this.Invoke(new Action(()=>calibrate()));
-                }
-            }),true);
+                    Invoke(new Action(()=>calibrate()));
+            },true);
         }
-        double lastdauer = 0;
-        double laststart = 0;
-        bool dateiErzeugt = false;
-        String lastFileErzeugt;
-        public void dateiErzeugtRoutine(String dateiname)
+        double lastdauer;
+        double laststart;
+        bool dateiErzeugt;
+        string lastFileErzeugt;
+        public void dateiErzeugtRoutine(string dateiname)
         {
             lastFileErzeugt = dateiname;
             dateiErzeugt = true;
-            pictureBox1.Image = System.Drawing.Icon.ExtractAssociatedIcon(lastFileErzeugt).ToBitmap();
-            
+            pictureBox1.Image = Icon.ExtractAssociatedIcon(lastFileErzeugt)?.ToBitmap();
         }
-        public String autoGenerateTargetFileName(String endung)
+        public string autoGenerateTargetFileName(string endung)
         {
-            String dat = beschleuniger.getInputFileName();
-            string[] separ = dat.Split(Path.DirectorySeparatorChar);
-            int lastindex = separ[separ.Length - 1].LastIndexOf('.');
-            String ergebnis;
+            var dat = beschleuniger.GetInputFileName();
+            var separ = dat.Split(Path.DirectorySeparatorChar);
+            var lastindex = separ[separ.Length - 1].LastIndexOf('.');
+            string ergebnis;
             ergebnis = separ[separ.Length - 1];
             if (lastindex != -1) { ergebnis = separ[separ.Length - 1].Remove(lastindex); }
              
-            ergebnis = ergebnis +"_fast"+ endung;
+            ergebnis = $"{ergebnis}_fast{endung}";
             ergebnis = beschleuniger.createTempFileName(ergebnis);
             beschleuniger.registerTempFile(ergebnis);
-            return ergebnis;
             
+            return ergebnis;
         }
-        public void calleGenerierungMitDateiname(String dateifilter,String dateiendung)
+        public void calleGenerierungMitDateiname(string dateifilter,string dateiendung)
         {
             if (Properties.Settings.Default.DragDropErzeugen)
             {
-                String dateiname = autoGenerateTargetFileName(dateiendung);
+                var dateiname = autoGenerateTargetFileName(dateiendung);
                 saveFileDialog1.FileName = dateiname;
                 saveFileDialog1_FileOk(this, null);
             }
@@ -467,52 +458,50 @@ namespace Vorrennung
                 saveFileDialog1.ShowDialog();
             }
         }
+        
         private void saveFileDialog1_FileOk(object sender, CancelEventArgs e)
         {
             if (!geoeffnet) { MessageBox.Show("Es muss zuerst eine Datei geöffnet werden."); return; }
-            DateTime startzeit = DateTime.Now;
+            var startzeit = DateTime.Now;
             switch (operationmode)
             {
                 case opmode.Video :
-            
-                    doInBackground(new Action(()=>{
+                    doInBackground(()=>{
                         outdatei = saveFileDialog1.FileName;
                         beschleuniger.setOutputFileName(outdatei);
                         beschleuniger.beschleunige();
-                        System.Diagnostics.Trace.WriteLine("Gesammtaufwand: " + DateTime.Now.Subtract(startzeit).TotalSeconds + "s");
-                        this.Invoke(new Action(() => dateiErzeugtRoutine(outdatei)));
-                    }),true);
+                        Trace.WriteLine(
+                            $"Gesammtaufwand: {DateTime.Now.Subtract(startzeit).TotalSeconds}s");
+                        Invoke(new Action(() => dateiErzeugtRoutine(outdatei)));
+                    },true);
                     break;
                 case opmode.CompleteAudio :
-
-                    doInBackground(new Action(() =>
-                    {
+                    doInBackground(() => {
                         outdatei = saveFileDialog1.FileName;
                         beschleuniger.setOutputFileName(outdatei);
                         beschleuniger.beschleunigeAudio();
-                        System.Diagnostics.Trace.WriteLine("Gesammtaufwand: " + DateTime.Now.Subtract(startzeit).TotalSeconds + "s");
-                        this.Invoke(new Action(() => dateiErzeugtRoutine(outdatei)));
-                    }), true);
+                        Trace.WriteLine(
+                            $"Gesammtaufwand: {DateTime.Now.Subtract(startzeit).TotalSeconds}s");
+                        Invoke(new Action(() => dateiErzeugtRoutine(outdatei)));
+                    }, true);
                     break;
                 case opmode.Reinhoeren :
-                    this.Enabled = false;
-                    Zeitfinder t = new Zeitfinder(beschleuniger.dauer,infofenster);
+                    Enabled = false;
+                    var t = new Zeitfinder(beschleuniger.dauer,infofenster);
                     if (lastdauer != 0 && laststart != 0)
-                    {
                         t.setPercent(laststart, lastdauer);
-                    }
+                    
                     t.FormClosed += dauerfensterClosed;
                     t.Show();
                     break;
                 case opmode.GestammeltesSchweigen :
-                    doInBackground(new Action(() =>
-                    {
-
+                    doInBackground(() => {
                         beschleuniger.setOutputFileName("");
                         beschleuniger.gestammeltesSchweigen();
-                        System.Diagnostics.Trace.WriteLine("Gesammtaufwand: " + DateTime.Now.Subtract(startzeit).TotalSeconds + "s");
+                        Trace.WriteLine(
+                            $"Gesammtaufwand: {DateTime.Now.Subtract(startzeit).TotalSeconds}s");
                         //this.Invoke(new Action(() => dateiErzeugtRoutine(outdatei)));
-                    }), true);
+                    }, true);
                     break;
             }
            
@@ -520,24 +509,24 @@ namespace Vorrennung
 
         public void dauerfensterClosed(object sender, EventArgs args)
         {
-            Zeitfinder t = (Zeitfinder)sender;
-            int startzeit=0;
-            int dauer=0;
-            this.Invoke(new Action(()=>{
+            var t = (Zeitfinder)sender;
+            var startzeit=0;
+            var dauer=0;
+            Invoke(new Action(()=>{
                 startzeit = t.startzeit;
                 dauer = t.dauer;
             }));
             laststart = startzeit / (double)beschleuniger.dauer;
             lastdauer = dauer / (double)beschleuniger.dauer;
-            this.Enabled = true;
+            Enabled = true;
             if (t.gueltig)
             {
-                doInBackground(new Action(() =>
+                doInBackground(() =>
                 {
 
                     beschleuniger.setOutputFileName("");
                     beschleuniger.reinhoeren(startzeit, dauer);
-                }), true);
+                }, true);
             }
                  
         }
@@ -545,9 +534,9 @@ namespace Vorrennung
         void setActivationState(bool t)
         {
             Activated = t;
-            foreach (Control c in this.Controls)
+            foreach (Control c in Controls)
             {
-                this.Invoke(new Action(()=>c.Enabled = t));
+                Invoke(new Action(()=>c.Enabled = t));
             }
         }
         void doInBackground(Action a,bool blockierend)
@@ -556,7 +545,7 @@ namespace Vorrennung
             {
                 setActivationState(false);
             }
-            Task.Factory.StartNew(new Action(() =>
+            Task.Factory.StartNew(() =>
             {
                 try
                 {
@@ -567,8 +556,7 @@ namespace Vorrennung
                 {
                     setActivationState(true);
                 }
-            }
-                ));
+            });
         }
 
         private void trackBar5_Scroll_1(object sender, EventArgs e)
@@ -616,14 +604,14 @@ namespace Vorrennung
 
         private void ModernUI_FormClosing(object sender, FormClosingEventArgs e)
         {
-            System.Diagnostics.Trace.WriteLine("Clean");
+            Trace.WriteLine("Clean");
             beschleuniger.clean();
-            System.Diagnostics.Trace.WriteLine("Prop");
+            Trace.WriteLine("Prop");
             beschleuniger.setParamsToProperties();
             Properties.Settings.Default.AskForSimultan = Wiederverwendung.Checked ;
-            System.Diagnostics.Trace.WriteLine("save");
+            Trace.WriteLine("save");
             Properties.Settings.Default.Save();
-            System.Diagnostics.Trace.WriteLine("done");
+            Trace.WriteLine("done");
         }
 
         private void toolStripProgressBar1_Click(object sender, EventArgs e)
@@ -647,7 +635,7 @@ namespace Vorrennung
         private void videoToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (!geoeffnet) { MessageBox.Show("Es muss zuerst eine Datei geöffnet werden."); return; }
-            if ((!File.Exists(ffprobeOrt)) && Properties.Settings.Default.PruefePfade) { MessageBox.Show("Der FFprobe-Pfad ist ungültig, dieser wird für die Videokonvertierung jedoch benötigt."); return; }
+            if (!File.Exists(ffprobeOrt) && Properties.Settings.Default.PruefePfade) { MessageBox.Show("Der FFprobe-Pfad ist ungültig, dieser wird für die Videokonvertierung jedoch benötigt."); return; }
             //saveFileDialog1.Filter = "Avi Dateien|*.avi|Alle Dateien|*.*";
             operationmode = opmode.Video ;
             //saveFileDialog1.ShowDialog();
@@ -675,7 +663,7 @@ namespace Vorrennung
             
             generiereDragdropToolStripMenuItem.Checked = Properties.Settings.Default.DragDropErzeugen;
             Wiederverwendung.Checked = Properties.Settings.Default.AskForSimultan;
-            this.Icon = Properties.Resources.Vorrennung_icon;
+            Icon = Properties.Resources.Vorrennung_icon;
             switchFastButtonText();
             shortcutinitzustand = toolStripButton1.Text;
             toolStripComboBox1.SelectedIndex = Properties.Settings.Default.BevorzugterBeschleunigungsmodus;
@@ -691,7 +679,7 @@ namespace Vorrennung
         }
         void switchFastButtonText()
         {
-            String t = (String)toolStripButton1.Tag;
+            var t = (string)toolStripButton1.Tag;
             toolStripButton1.Tag = toolStripButton1.Text;
             toolStripButton1.Text = t;
         }
@@ -722,12 +710,12 @@ namespace Vorrennung
 
         private void beendenToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.Close();
+            Close();
         }
 
         private void überToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Ueber tmp = new Ueber();
+            var tmp = new Ueber();
             tmp.ShowDialog();
         }
 
@@ -750,7 +738,7 @@ namespace Vorrennung
 
         private void toolStripTextBox1_DoubleClick(object sender, EventArgs e)
         {
-           // toolStripTextBox1.Enabled = false;
+            // toolStripTextBox1.Enabled = false;
             openFileDialog2.ShowDialog();
         }
 
@@ -760,13 +748,13 @@ namespace Vorrennung
             ffmpegOrt = toolStripTextBox1.Text;
             sendParams();
             //toolStripTextBox1.Enabled = true;
-        
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
             calibrate();
         }
+        
         void calibrate()
         {
             if (infofenster.getDistribution() != null)
@@ -789,20 +777,7 @@ namespace Vorrennung
                 ignorechangeNumericChange = false;
             }
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
         private void toolStripTextBox2_DoubleClick(object sender, EventArgs e)
         {
             openFileDialog3.ShowDialog();
@@ -823,7 +798,6 @@ namespace Vorrennung
 
         private void toolStripComboBox1_Click(object sender, EventArgs e)
         {
-
         }
 
         private void toolStripComboBox1_SelectedIndexChanged(object sender, EventArgs e)
@@ -833,29 +807,26 @@ namespace Vorrennung
 
         private void toolStripButton1_Click(object sender, EventArgs e)
         {
-            if (ModernUI.ModifierKeys == Keys.Shift || ModernUI.ModifierKeys == Keys.Control || ModernUI.ModifierKeys == Keys.None) { } else { return; }
-            if (ModernUI.ModifierKeys == Keys.Control) { button1_Click(sender, e); return; }
-            if (!geoeffnet|| (ModernUI.ModifierKeys&Keys.Shift)==Keys.Shift)
+            if (ModifierKeys == Keys.Shift || ModifierKeys == Keys.Control || ModifierKeys == Keys.None) { } else { return; }
+            if (ModifierKeys == Keys.Control) { button1_Click(sender, e); return; }
+            if (!geoeffnet|| (ModifierKeys&Keys.Shift)==Keys.Shift)
             {
                 öffnenToolStripMenuItem_Click(null, null);
             }
             else
             {
                 switch (toolStripComboBox1.SelectedIndex)
-                {/*Audio
-Testaudio
-Schweigen
-Video*/
-                    case 0:
+                {
+                    case 0: // Audio
                         audioToolStripMenuItem_Click(null, null);
                         break;
-                    case 1:
+                    case 1: // Testaudio
                         reinhörenToolStripMenuItem_Click(null, null);
                         break;
-                    case 2:
+                    case 2: // Schweigen
                         gestammeltesSchweigenToolStripMenuItem_Click(null, null);
                         break;
-                    case 3:
+                    case 3: // Video
                         videoToolStripMenuItem_Click(null, null);
                         break;
                 }
@@ -865,11 +836,11 @@ Video*/
         private void ModernUI_DragDrop(object sender, DragEventArgs e)
         {
             if (Activated== false) { return; }
-            string[]werte=((string[])e.Data.GetData(DataFormats.FileDrop, true));
+            var werte = (string[])e.Data.GetData(DataFormats.FileDrop, true);
             if (Directory.Exists(werte[0]))
             {
-                String[] dateien=Directory.GetFiles(werte[0]);
-                foreach (String s in dateien)
+                var dateien=Directory.GetFiles(werte[0]);
+                foreach (var s in dateien)
                 {
                     if (s.EndsWith("ffmpeg.exe"))
                     {
@@ -885,16 +856,16 @@ Video*/
             }else{
                 if (werte[0].EndsWith(".exe"))
                 {
-                    for (int i = 0; i < werte.Length; i++)
+                    foreach (var value in werte)
                     {
-                        if (werte[i].EndsWith("ffmpeg.exe"))
+                        if (value.EndsWith("ffmpeg.exe"))
                         {
-                            openFileDialog2.FileName = werte[i];
+                            openFileDialog2.FileName = value;
                             openFileDialog2_FileOk(null, null);
                         }
-                        else if (werte[i].EndsWith("ffprobe.exe"))
+                        else if (value.EndsWith("ffprobe.exe"))
                         {
-                            openFileDialog3.FileName = werte[i];
+                            openFileDialog3.FileName = value;
                             openFileDialog3_FileOk(null, null);
                         }
                     }
@@ -903,11 +874,8 @@ Video*/
                 {
                     openFileDialog1.FileName = werte[0];
                     openFileDialog1_FileOk(this, null);
-                
                 }
             }
-            
-            
         }
 
         private void ModernUI_DragEnter(object sender, DragEventArgs e)
@@ -917,8 +885,8 @@ Video*/
             {
                 if (e.Data.GetFormats().Contains(DataFormats.FileDrop))
                 {
-                    string[] werte = (string[])e.Data.GetData(DataFormats.FileDrop, false);
-                    if ((werte.Length == 1 || (werte.Length == 2 && werte[1].EndsWith(".exe"))) && werte[0].EndsWith(".exe"))
+                    var werte = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+                    if ((werte.Length == 1 || werte.Length == 2 && werte[1].EndsWith(".exe")) && werte[0].EndsWith(".exe"))
                     {
                         e.Effect = DragDropEffects.Copy;
                     }
@@ -926,12 +894,11 @@ Video*/
                     {
                         e.Effect = DragDropEffects.Copy;
                     }
-
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-             
+                // ignored
             }
         }
 
@@ -950,43 +917,36 @@ Video*/
 
         private void panel1_DragEnter(object sender, DragEventArgs e)
         {
-          
-            
         }
 
         private void label14_MouseDown(object sender, MouseEventArgs e)
         {
-            
         }
 
         private void pictureBox1_MouseDown(object sender, MouseEventArgs e)
         {
             if (dateiErzeugt )
             {
-                
-                
-                
-                var datenObject=new DataObject();
-                string[] c = new string[1];
+                var datenObject = new DataObject();
+                var c = new string[1];
                 c[0] = lastFileErzeugt;
                 datenObject.SetData(DataFormats.FileDrop ,c);
-                System.Diagnostics.Trace.WriteLine("dragdropstart");
-                this.AllowDrop = false;
-                DragDropEffects ergebnis = DoDragDrop(datenObject, DragDropEffects.Move );
-                this.AllowDrop = true;
-                System.Diagnostics.Trace.WriteLine("dragdropend");
-                System.Diagnostics.Trace.WriteLine("dragdropmode: "+ergebnis);
-
-
-                    dateiErzeugt = false;
-                    pictureBox1.Image = new Bitmap(1, 1);
+                Trace.WriteLine("dragdropstart");
+                AllowDrop = false;
+                var ergebnis = DoDragDrop(datenObject, DragDropEffects.Move );
+                AllowDrop = true;
+                Trace.WriteLine("dragdropend");
+                Trace.WriteLine($"dragdropmode: {ergebnis}");
+                
+                dateiErzeugt = false;
+                pictureBox1.Image = new Bitmap(1, 1);
 
             }
         }
         public bool testeobsgeht()
         {
             if (!geoeffnet) { MessageBox.Show("Es muss zuerst eine Datei geöffnet werden."); return false; }
-            if ((!File.Exists(ffprobeOrt)) && Properties.Settings.Default.PruefePfade) { MessageBox.Show("Der FFprobe-Pfad ist ungültig, dieser wird für die Videokonvertierung jedoch benötigt."); return false; }
+            if (!File.Exists(ffprobeOrt) && Properties.Settings.Default.PruefePfade) { MessageBox.Show("Der FFprobe-Pfad ist ungültig, dieser wird für die Videokonvertierung jedoch benötigt."); return false; }
             return true;
         }
 
@@ -997,17 +957,16 @@ Video*/
 
         private void toolStripDropDownButton2_Click(object sender, EventArgs e)
         {
-
         }
 
         private void numericUpDown1_ValueChanged(object sender, EventArgs e)
         {
-            sendParams(false);//ändert an dem ergebnis nichts außer den fps, daher sinnfrei nachzurechnen
+            sendParams(false); // ändert an dem ergebnis nichts außer den fps, daher sinnfrei nachzurechnen
         }
 
         private void checkBox4_CheckedChanged(object sender, EventArgs e)
         {
-            sendParams(false);//ändert an dem ergebnis nichts außer den fps, daher sinnfrei nachzurechnen
+            sendParams(false); // ändert an dem ergebnis nichts außer den fps, daher sinnfrei nachzurechnen
         }
 
         private void trackBar10_Scroll(object sender, EventArgs e)
@@ -1048,22 +1007,22 @@ Video*/
 
         private void sprechTempoTrack_Scroll(object sender, EventArgs e)
         {
-            toolTip1.SetToolTip(sprechTempoTrack, "Tempo*"+(1 + 3*(sprechTempoTrack.Value - sprechTempoTrack.Minimum) / (double)(sprechTempoTrack.Maximum - sprechTempoTrack.Minimum)));
+            toolTip1.SetToolTip(sprechTempoTrack,
+                $"Tempo*{(1 + 3 * (sprechTempoTrack.Value - sprechTempoTrack.Minimum) / (double) (sprechTempoTrack.Maximum - sprechTempoTrack.Minimum))}");
             Properties.Settings.Default.Beschleunigungslider = sprechTempoTrack.Value;
             trackBar1.Value = (int)((trackBar1.Maximum - trackBar1.Minimum)*((sprechTempoTrack.Value-sprechTempoTrack.Minimum )/((double)sprechTempoTrack.Maximum-sprechTempoTrack.Minimum))) + trackBar1.Minimum;
-            int solaBlockDiv = 120;// Math.Min((int)(40 + 160 * (sprechTempoTrack.Value - sprechTempoTrack.Minimum) / (sprechTempoTrack.Maximum  - (double)sprechTempoTrack.Minimum)),120);
-            int solaSuchBerDiv = 180;//(int)(solaBlockDiv +40);
+            var solaBlockDiv = 120; // Math.Min((int)(40 + 160 * (sprechTempoTrack.Value - sprechTempoTrack.Minimum) / (sprechTempoTrack.Maximum  - (double)sprechTempoTrack.Minimum)),120);
+            var solaSuchBerDiv = 180; // (int)(solaBlockDiv +40);
            
             trackBar11.Value = solaBlockDiv-10;
             trackBar12.Value = solaSuchBerDiv-1;
             trackBar1_Scroll(trackBar1, null);
-
         }
 
         private void audioQualiTrack_Scroll(object sender, EventArgs e)
         {
             Properties.Settings.Default.Audioqualislider  = audioQualiTrack.Value;
-            int val = (audioQualiTrack.Value - audioQualiTrack.Minimum) * 1200 / (audioQualiTrack.Maximum - audioQualiTrack.Minimum) + 800;
+            var val = (audioQualiTrack.Value - audioQualiTrack.Minimum) * 1200 / (audioQualiTrack.Maximum - audioQualiTrack.Minimum) + 800;
             //Console.WriteLine(val);
             trackBar10.Value = val-50;
             trackBar10_Scroll(trackBar10, null);
@@ -1072,8 +1031,8 @@ Video*/
         private void PausenLaengeTrack_Scroll(object sender, EventArgs e)
         {
             Properties.Settings.Default.Pausenlaengeslider = PausenLaengeTrack .Value;
-            double wert = (PausenLaengeTrack.Value - PausenLaengeTrack.Minimum) / (double)(PausenLaengeTrack.Maximum - PausenLaengeTrack.Minimum);
-            wert = (1-wert) * .5 + (.125 / 32);
+            var wert = (PausenLaengeTrack.Value - PausenLaengeTrack.Minimum) / (double)(PausenLaengeTrack.Maximum - PausenLaengeTrack.Minimum);
+            wert = (1-wert) * .5 + .125 / 32;
             trackBar5.Value = (int)(wert * 10000);
             trackBar5_Scroll(trackBar6, null);
             
@@ -1105,7 +1064,6 @@ Video*/
 
         private void zusätzlicheAudioparameterFürFFmpegToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
         }
 
         private void toolStripTextBox3_TextChanged(object sender, EventArgs e)
@@ -1115,32 +1073,27 @@ Video*/
 
         private void toolStripTextBox3_Click(object sender, EventArgs e)
         {
-
         }
 
         private void toolTip1_Popup(object sender, PopupEventArgs e)
         {
-            
         }
 
         void SetMode(bool expertenmodus)
         {
+            panel1.Enabled = !expertenmodus;
+            panel1.Visible = !expertenmodus;
             
             if (expertenmodus)
             {
-                panel1.Enabled = false;
-                panel1.Visible = false;
                 panel1.SendToBack();
-                this.Size = new Size(this.Size.Width ,expertSize);
+                Size = new Size(Size.Width ,expertSize);
             }
             else
             {
-                panel1.Enabled = true;
-                panel1.Visible = true;
                 panel1.BringToFront();
-                this.Size = new Size(this.Size.Width, simpleSize );
+                Size = new Size(Size.Width, simpleSize );
             }
         }
-
     }
 }

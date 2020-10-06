@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Drawing;
-using System.Threading.Tasks;
-using System.Threading;
 
 namespace Vorrennung
 {
@@ -28,9 +26,7 @@ namespace Vorrennung
                 public event ChangedEventHandler Changed;
                 public virtual void OnChanged()
                 {
-                    
-                    if (Changed != null)
-                        Changed();
+                    Changed?.Invoke();
                 }
                 /// <summary>
                 /// <para>How much of the not seen content is left of the visible area.
@@ -38,7 +34,7 @@ namespace Vorrennung
                 /// <para>(1 - 0.1) * 0.2 = 0.9 * 0.2 = 0.18</para>
                 /// <para>... 18% of the content and spans 10% of the content.</para>
                 /// </summary>
-                public double scroll = 0;
+                public double scroll;
                 /// <summary>
                 /// <para>How much of the content is visible;</para>
                 /// 1 = all; 0 = nothing
@@ -92,7 +88,7 @@ namespace Vorrennung
             /// </summary>
             public zoomSettings zoom { get; private set; }
             zoomSettings lastzoom = new zoomSettings();
-            private Dictionary<String, Line> vertLines, horizLines;
+            private Dictionary<string, Line> vertLines, horizLines;
             #endregion
 
 
@@ -106,20 +102,20 @@ namespace Vorrennung
                 pAvg = new Pen(new SolidBrush(averageColor));
                 pMin = new Pen(new SolidBrush(minimumColor));
 
-                this.MouseMove += mouseDrag;
-                this.MouseWheel += mouseScroll;
-                this.MouseUp += mouseUp;
-                this.Click += mouseClick;
+                MouseMove += mouseDrag;
+                MouseWheel += mouseScroll;
+                MouseUp += mouseUp;
+                Click += mouseClick;
 
                 SetStyle(ControlStyles.ResizeRedraw, true);
                 SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
                 SetStyle(ControlStyles.UserPaint, true);
                 SetStyle(ControlStyles.AllPaintingInWmPaint, true);
 
-                vertLines = new Dictionary<String, Line>();
-                horizLines = new Dictionary<String, Line>();
+                vertLines = new Dictionary<string, Line>();
+                horizLines = new Dictionary<string, Line>();
 
-                settings.Changed += () => { this.Invalidate(); this.Update(); };
+                settings.Changed += () => { Invalidate(); Update(); };
 
                 setValues(values);
             }
@@ -155,47 +151,47 @@ namespace Vorrennung
                     return;
                 values = v;
                 newBitmap = true;
-                this.Invalidate();
+                Invalidate();
             }
 
 
 
 
-            public void setVertLine(String name, Line line)
+            public void setVertLine(string name, Line line)
             {
                 vertLines[name] = line;
-                this.Invalidate();
-                this.BeginInvoke(new Action(() =>
+                Invalidate();
+                BeginInvoke(new Action(() =>
                 {
-                    this.Update();
+                    Update();
                 }));
             }
-            public Line getVertLine(String name)
+            public Line getVertLine(string name)
             {
                 return vertLines[name];
             }
-            public void removeVertLine(String name)
+            public void removeVertLine(string name)
             {
                 vertLines.Remove(name);
-                this.Invalidate();
+                Invalidate();
             }
-            public void setHorizLine(String name, Line line)
+            public void setHorizLine(string name, Line line)
             {
                 horizLines[name] = line;
-                this.Invalidate();
-                this.BeginInvoke(new Action(() =>
+                Invalidate();
+                BeginInvoke(new Action(() =>
                 {
-                    this.Update();
+                    Update();
                 }));
             }
-            public Line getHorizLine(String name)
+            public Line getHorizLine(string name)
             {
                 return horizLines[name];
             }
-            public void removeHorizLine(String name)
+            public void removeHorizLine(string name)
             {
                 horizLines.Remove(name);
-                this.Invalidate();
+                Invalidate();
             }
             #endregion
 
@@ -222,30 +218,30 @@ namespace Vorrennung
                         lastzoom.zoom = zoom.zoom;
                         newBitmap = true;
                     }
-                    if (b==null||b.Width != this.Width || b.Height != this.Height) { newBitmap = true; }
+                    if (b==null||b.Width != Width || b.Height != Height) { newBitmap = true; }
                 }
                 if (newBitmap)
                 {
                     Graphics g;
                     if (b != null)
                     {
-                        if (b.Width != this.Width || b.Height != this.Height)
+                        if (b.Width != Width || b.Height != Height)
                         {
-                            b = new Bitmap(this.Width, this.Height);
+                            b = new Bitmap(Width, Height);
                             g = Graphics.FromImage(b);
                         }
                         else
                         {
                             g = Graphics.FromImage(b);
                             g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                            g.FillRectangle(new SolidBrush(Color.FromArgb(0,0,0,0)), new Rectangle(0, 0, this.Width, this.Height));
+                            g.FillRectangle(new SolidBrush(Color.FromArgb(0,0,0,0)), new Rectangle(0, 0, Width, Height));
                             g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceOver;
                         }
 
                     }
                     else
                     {
-                        b = new Bitmap(this.Width, this.Height);
+                        b = new Bitmap(Width, Height);
                         g = Graphics.FromImage(b);
                     }
                     newBitmap = false;
@@ -256,23 +252,23 @@ namespace Vorrennung
 
 
 
-                    double pointsPerP = (double)values.Count * zoom.zoom / this.Width;
+                    var pointsPerP = values.Count * zoom.zoom / Width;
 
                     double sum = 0;
                     double max = 0;
                     double min = 0;
                     double tmp;
-                    int count = 0;
+                    var count = 0;
                     int j, end;
 
 
                     
 
 
-                    top.Y = this.Height;
-                    bottom.Y = this.Height;
+                    top.Y = Height;
+                    bottom.Y = Height;
 
-                    int offset = (int)((double)values.Count * (1 - zoom.zoom) * zoom.scroll);
+                    var offset = (int)(values.Count * (1 - zoom.zoom) * zoom.scroll);
 
 
 
@@ -280,11 +276,11 @@ namespace Vorrennung
                      * Calculate the corresponding values for each column
                      * Für jede Spalte die gewünschten Werte errechnen
                      */
-                    for (int i = 0; i < this.Width; i++)
+                    for (var i = 0; i < Width; i++)
                     {
 
-                        j = offset + (int)Math.Ceiling((double)i * pointsPerP);
-                        end = offset + (int)Math.Ceiling((double)(i + 1) * pointsPerP);
+                        j = offset + (int)Math.Ceiling(i * pointsPerP);
+                        end = offset + (int)Math.Ceiling((i + 1) * pointsPerP);
 
                         if (j < end)
                         {
@@ -321,16 +317,16 @@ namespace Vorrennung
 
                         bottom.X = i;
                         top.X = i;
-                        top.Y = (int)(this.Height * (1 - max));
+                        top.Y = (int)(Height * (1 - max));
                         g.DrawLine(pMax, bottom, top);
-                        top.Y = (int)(this.Height * (1 - sum));
+                        top.Y = (int)(Height * (1 - sum));
                         g.DrawLine(pAvg, bottom, top);
-                        top.Y = (int)(this.Height * (1 - min));
+                        top.Y = (int)(Height * (1 - min));
                         g.DrawLine(pMin, bottom, top);
                     }
                 }
 
-                Graphics ziel = pe.Graphics;
+                var ziel = pe.Graphics;
                 paintLines(ziel, false);
                 ziel.DrawImageUnscaled(b, Point.Empty);
                 paintLines(ziel, true);
@@ -346,7 +342,7 @@ namespace Vorrennung
                  */
                 top.Y = 0;
                 double x = 0, x2 = 0;
-                foreach (Line l in vertLines.Values)
+                foreach (var l in vertLines.Values)
                 {
                     if (l.front != front)
                         continue;
@@ -358,7 +354,7 @@ namespace Vorrennung
                     {
                         if (0 <= x && x < 1)
                         {
-                            bottom.X = (int)(x * this.Width);
+                            bottom.X = (int)(x * Width);
                             top.X = bottom.X;
                             g.DrawLine(new Pen(new SolidBrush(l.color)), bottom, top);
                         }
@@ -371,9 +367,9 @@ namespace Vorrennung
                         if (x < 1 && x2 > 0)
                         {
                             g.FillRectangle(new SolidBrush(l.color), new RectangleF(
-                                (int)(x * this.Width), 0,
-                                (int)((Math.Min(1, x2) - x) * this.Width),
-                                this.Height));
+                                (int)(x * Width), 0,
+                                (int)((Math.Min(1, x2) - x) * Width),
+                                Height));
                         }
                     }
                 }
@@ -383,9 +379,9 @@ namespace Vorrennung
                  * Horizontale Linien einzeichnen
                  */
                 bottom.X = 0;
-                top.X = this.Width;
+                top.X = Width;
                 top.Y = 0;
-                foreach (Line l in horizLines.Values)
+                foreach (var l in horizLines.Values)
                 {
                     if (l.front != front)
                         continue;
@@ -394,7 +390,7 @@ namespace Vorrennung
                     // Draw line / Linie zeichnen
                     if (l.end < 0)
                     {
-                        bottom.Y = (int)((1 - l.value) * this.Height);
+                        bottom.Y = (int)((1 - l.value) * Height);
                         top.Y = bottom.Y;
                         g.DrawLine(new Pen(new SolidBrush(l.color)), bottom, top);
                     }
@@ -403,8 +399,8 @@ namespace Vorrennung
                     else
                     {
                         g.FillRectangle(new SolidBrush(l.color), new RectangleF(
-                            0, (int)((1 - l.end) * this.Height),
-                            this.Width, (int)(((l.end - l.value)) * this.Height)));
+                            0, (int)((1 - l.end) * Height),
+                            Width, (int)((l.end - l.value) * Height)));
                     }
                 }
             }
@@ -417,13 +413,13 @@ namespace Vorrennung
 
 
             #region mouse
-            private int mHistX = 0;
+            private int mHistX;
             private void mouseDrag(object Sender, MouseEventArgs e)
             {
                 if (!e.Button.Equals(MouseButtons.None))
                 {
                     if (zoom.zoom < 1)
-                        zoom.scroll += (double)(mHistX - e.X) / this.Width * zoom.zoom / (1 - zoom.zoom);
+                        zoom.scroll += (double)(mHistX - e.X) / Width * zoom.zoom / (1 - zoom.zoom);
                     zoom.scroll = Math.Min(1, Math.Max(0, zoom.scroll));
                     zoom.OnChanged();
                 }
@@ -433,24 +429,24 @@ namespace Vorrennung
             private void mouseScroll(object Sender, MouseEventArgs e)
             { // Zoom into Mouse position
 
-                if (Control.ModifierKeys == Keys.Shift)
+                if (ModifierKeys == Keys.Shift)
                 { // Horizontal Scroll
                     if (zoom.zoom < 1)
-                        zoom.scroll += (double)(-e.Delta / 2) / this.Width * zoom.zoom / (1 - zoom.zoom);
+                        zoom.scroll += (double)(-e.Delta / 2) / Width * zoom.zoom / (1 - zoom.zoom);
                     zoom.scroll = Math.Min(1, Math.Max(0, zoom.scroll));
                 }
                 else
                 { // Zoom
 
                     // Calculate mouse position on theoretical full width / Mausposition auf theoretischer Gesamtbreite berechnen
-                    zoom.scroll = zoom.scroll * (1 - zoom.zoom) + ((double)e.Location.X / this.Width) * zoom.zoom;
+                    zoom.scroll = zoom.scroll * (1 - zoom.zoom) + (double)e.Location.X / Width * zoom.zoom;
 
                     zoom.zoom /= Math.Pow(2, (double)e.Delta / 1000);
                     zoom.zoom = Math.Min(zoom.zoom, 1);
 
                     // reverse upper calculation / obige Berechnung rückwärts mit neuem zoom-Wert
                     if (zoom.zoom < 1)
-                        zoom.scroll = (zoom.scroll - ((double)e.Location.X / this.Width) * zoom.zoom) / (1 - zoom.zoom);
+                        zoom.scroll = (zoom.scroll - (double)e.Location.X / Width * zoom.zoom) / (1 - zoom.zoom);
 
                     zoom.scroll = Math.Min(1, Math.Max(0, zoom.scroll));
                 }
@@ -464,11 +460,10 @@ namespace Vorrennung
                 mouseY = e.Location.Y;
             }
             private void mouseClick(object Sender, EventArgs e)
-            { // Inform about Mouse click position in data; Use Coordinates from last MouseUp
-                if (Clicked != null)
-                { // Math from Scroll
-                    Clicked(this, (zoom.scroll * (1 - zoom.zoom) + ((double)mouseX / this.Width) * zoom.zoom), (1 - (double)mouseY / this.Height), e);
-                }
+            {
+                // Inform about Mouse click position in data; Use Coordinates from last MouseUp
+                // Math from Scroll
+                Clicked?.Invoke(this, zoom.scroll * (1 - zoom.zoom) + (double)mouseX / Width * zoom.zoom, 1 - (double)mouseY / Height, e);
             }
             #endregion
         }

@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Vorrennung.Daniel;
+
 namespace Vorrennung
 {
     
@@ -26,8 +23,8 @@ namespace Vorrennung
             lautstaerken.Dock = DockStyle.Fill;
             verteilung.Dock = DockStyle.Fill;
             beschleunigung.Dock = DockStyle.Fill;
-           // lautstaerken.zoom.Changed += onChangedLautzoom;
-            //beschleunigung.zoom.Changed += onChangedBeschzoom;
+            // lautstaerken.zoom.Changed += onChangedLautzoom;
+            // beschleunigung.zoom.Changed += onChangedBeschzoom;
             
             lautstaerken.Parent = tableLayoutPanel1;
             
@@ -38,8 +35,7 @@ namespace Vorrennung
 
             beschleunigung.MouseWheel += changeFromInfos;
             beschleunigung.MouseMove += changeFromInfos;
-
-
+            
             beschleunigung.MouseMove += mouseMovedOverGraphs;
             lautstaerken.MouseMove += mouseMovedOverGraphs;
             verteilung.MouseMove += mouseMovedOverGraphs;
@@ -50,7 +46,7 @@ namespace Vorrennung
         }
         public void mouseMovedOverGraphs(object sender, MouseEventArgs args)
         {
-            Control c = (Control)sender;
+            var c = (Control)sender;
             if (!c.Focused) { c.Focus(); }
         }
         GraphView lautstaerken, verteilung, beschleunigung;
@@ -58,36 +54,30 @@ namespace Vorrennung
         {
             if (m.Msg == 0x10)
             {
-                this.Hide();
+                Hide();
                 return;
             }
-                
 
             base.WndProc(ref m);
         }
         private void Infographikfenster_Load(object sender, EventArgs e)
         {
-            this.Icon = Properties.Resources.Vorrennung_icon;
+            Icon = Properties.Resources.Vorrennung_icon;
         }
         public void setStartStopTime(double start, double dauer)
         {
-            double stop=Math.Min(1,start+dauer);
+            var stop= Math.Min(1, start+dauer);
            
-            GraphView.Line tmp=new GraphView.Line(start,Color.FromArgb(128,255,192,128),stop,true);
+            var tmp = new GraphView.Line(start,Color.FromArgb(128,255,192,128),stop);
             lautstaerken.setVertLine("block", tmp);
             beschleunigung.setVertLine("block", tmp);
             /*tmp = new GraphView.Line(stop, Color.FromArgb(255, 255, 255),true);
             lautstaerken.setVertLine("stop", tmp);
             beschleunigung.setVertLine("stop", tmp);*/
-            
-            
-            
-            
         }
         public void setHighLowVolume(double low,double high)
         {
-            GraphView.Line l;
-            l = new GraphView.Line(low,Color.FromArgb(255,192,127),true);
+            var l = new GraphView.Line(low,Color.FromArgb(255,192,127),true);
             verteilung.setVertLine("low", l);
             lautstaerken.setHorizLine("low", l);
             l = new GraphView.Line(high, Color.FromArgb(64, 255, 255), true);
@@ -119,7 +109,6 @@ namespace Vorrennung
                 beschleunigung.zoom.zoom = lautstaerken.zoom.zoom;
                 beschleunigung.zoom.OnChanged();
             }
-            
         }
         public void onChangedBeschzoom()
         {
@@ -130,85 +119,71 @@ namespace Vorrennung
                 lautstaerken.zoom.OnChanged();
             }
         }
-        double Ew = 0;
-        double empVar = 0;
+        double Ew;
+        double empVar;
         
         public void setVolumes(List<double> vol)
         {
-            
             lautstaerken.setValues(vol);
-            int werte = 10000;
+            var werte = 10000;
             distribution = new List<double>(werte);
           
-            for (int i = 0; i < werte; i++) { distribution.Add(0); }
+            for (var i = 0; i < werte; i++) { distribution.Add(0); }
             int index;
-            int max = 0;
+            var max = 0;
             
-            for (int i = 0; i < vol.Count; i++)
+            for (var i = 0; i < vol.Count; i++)
             {
-                index = (int)Math.Abs(vol[i] *(werte));
+                index = (int)Math.Abs(vol[i] *werte);
                 if (index < 0) { index = 0; }
-                if (index >= (werte )) { }
+                if (index >= werte) { }
                 else
                 {
                     //  System.Diagnostics.Trace.WriteLine(index);
                     distribution[index]++;
                     if (distribution[index] > max) { max = (int)distribution[index]; }
                     Ew += index;
-                    
                 }
             }
-            Ew = Ew / (double)werte / (double)vol.Count;
+            Ew = Ew / werte / vol.Count;
             
             Console.WriteLine(distribution.Count);
-            for (int i = 0; i < distribution.Count ; i++)
-            {
-             
-                empVar += distribution[i] * Math.Pow(((i / (double)werte) - Ew), 2);
-            }
-            
-            empVar = (empVar / (vol.Count  - 1));
-            Console.WriteLine("STDAbw: " + empVar + " EW: " + Ew);
+            for (var i = 0; i < distribution.Count ; i++)
+                empVar += distribution[i] * Math.Pow(i / (double)werte - Ew, 2);
+
+            empVar /= vol.Count  - 1;
+            Console.WriteLine($"STDAbw: {empVar} EW: {Ew}");
         
-            Parallel.For(0, distribution.Count, i =>
-            {
-                distribution[i] /= max;
-            });
+            Parallel.For(0, distribution.Count, i=> distribution[i] /= max);
             
             /*for (int i = 0; i < quantity.Count ; i++)
-            {
-                System.Diagnostics.Trace.WriteLine(quantity[i]);
-            }*/
+                System.Diagnostics.Trace.WriteLine(quantity[i]);*/
+            
             double sum = 0;
             GraphView.Line lein=null,EWLine=new GraphView.Line(Ew ,Color.Red),stdAbwLine=new GraphView.Line(Ew-empVar ,Color.White);
-            for (int i=0;i< werte; i++)
+            for (var i=0;i< werte; i++)
             {
-                sum += distribution[i]*max/(double)vol.Count;
+                sum += distribution[i]*max/vol.Count;
                 if (sum > .5)
                 {
-                   lein = new GraphView.Line(i/(double)werte, Color.Green );
-                    
+                    lein = new GraphView.Line(i/(double)werte, Color.Green );
                     break;
                 }
             }
-                verteilung.setValues(distribution);
-          //  verteilung.setVertLine("50%", lein);
-            //verteilung.setVertLine("EW", EWLine);
-            //verteilung.setVertLine("stdabw", stdAbwLine);
+            verteilung.setValues(distribution); 
+            // verteilung.setVertLine("50%", lein);
+            // verteilung.setVertLine("EW", EWLine);
+            // verteilung.setVertLine("stdabw", stdAbwLine);
         }
         public void calibrateThresholds(out double leise,out double laut)
         {
             leise = (Ew - empVar)*.9;
             laut = Ew * .9;
-            if (leise < 0)
-            {
-                leise = Ew * .9*.7;
-            }
-            if (leise < 0) { leise = 0; }
-            if (leise > 1) { leise = 1; }
-            if (laut < 0) { laut = 0; }
-            if (laut > 1) { laut = 1; }
-
+            if (leise < 0) leise = Ew * .9*.7;
+            if (leise < 0) leise = 0;
+            if (leise > 1) leise = 1;
+            if (laut < 0) laut = 0;
+            if (laut > 1) laut = 1;
         }
         public void setBeschleunigung(List<double> besch)
         {

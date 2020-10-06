@@ -1,18 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Vorrennung
 {
     public partial class FileFinder : UserControl
     {
-        public String Caption { get { return label1.Text; } set { label1.Text = value; } }
+        public string Caption { get => label1.Text;
+            set => label1.Text = value;
+        }
         
         //public override String Text { get { return textBox1.Text; } set { textBox1.Text = value; } }
         //public String Filter { get { return openFileDialog1.Filter; } set { openFileDialog1.Filter = value; } }
@@ -39,15 +35,15 @@ namespace Vorrennung
         {
             textBox1.Text = openFileDialog1.FileName;
         }
-        public String getFileName(bool hochkommas)
+        public string getFileName(bool hochkommas)
         {
             return toFileName(textBox1.Text,hochkommas);
         }
-        public static String toFileName(String t,bool hochkommas)
+        public static string toFileName(string t,bool hochkommas)
         {
             t = t.Replace("\"", "");
             t = t.Trim();
-            if (hochkommas) { t = "\"" + t + "\""; }
+            if (hochkommas) { t = $"\"{t}\""; }
             return t;
         }
 
