@@ -425,8 +425,7 @@ namespace Vorrennung
             b.eigeneFps = p.EigeneFPS;
             b.fps = p.Fpswert;
             dynaudnorm = p.Dynaudnorm;
-
-
+            
             solasuchberdiv = p.SolaBer;
             solablockdiv = p.SolaDiv;
             solasuchschrdiv = p.SolaSchritt;
@@ -438,8 +437,7 @@ namespace Vorrennung
             var p = Properties.Settings.Default;
             var b = beschleunigungsParameter;
             aktuell = false;
-
-
+            
             p.SolaVerwenden = useSola;
             p.Ableitungsglaettung=b.ableitungsglaettung;
             p.MaximalerAbfall=b.maxableitung  ;
@@ -474,15 +472,13 @@ namespace Vorrennung
         {
             locked = useLast;
             TraceExclamation("setinputfilename");
+            
             try{
-
-        
                 setzeGesammtFortschritt(0);
                 inputdateiname = dateiname;
                 if (!locked)
                 {
                     clean();
-                    
                     generiereWavInputDatei();
                 }
                 
@@ -493,7 +489,6 @@ namespace Vorrennung
                 setzeGesammtFortschritt(50);
                 refresh();
                 setzeGesammtFortschritt(100);
-             
             }
             catch (Exception e)
             {
@@ -549,11 +544,7 @@ namespace Vorrennung
             try
             {
                 setzeGesammtFortschritt(25);
-                
-                    fastenViaSola();
-               
-                
-                
+                fastenViaSola();
                 setzeGesammtFortschritt(50);
                 createFastendVideo(inputdateiname, outputdateiname, tempwavdatei);
                 setzeGesammtFortschritt(100);
@@ -573,10 +564,7 @@ namespace Vorrennung
             try
             {
                 setzeGesammtFortschritt(25);
-                
-                    fastenViaSola();
-               
-
+                fastenViaSola();
                 setzeGesammtFortschritt(70);
                 //createFastendVideo(inputdateiname, outputdateiname, tempwavdatei);
                 
@@ -994,7 +982,7 @@ namespace Vorrennung
             }
         }
 
-        public void speedfaktoren( speedfakt funktion)//zusammenfassung== wie viele blöcke als ein ganzes gesehen werden sollen
+        public void speedfaktoren(speedfakt funktion)//zusammenfassung== wie viele blöcke als ein ganzes gesehen werden sollen
         {
             TraceExclamation("speedfakt");
             if (!locked)
@@ -1044,7 +1032,6 @@ namespace Vorrennung
                     wertv = wert;
                     wert = wertn;
                     setzeTeilFortschritt(50 + 25 * i / tmp.Count);
-
                 }
                 wertv = -1;
                 wert = tmp[tmp.Count - 1];
@@ -1062,7 +1049,6 @@ namespace Vorrennung
                         wertv = wert;
                         wert = wertn;
                         setzeTeilFortschritt(75 + 25 * (tmp.Count - 1 - i) / tmp.Count);
-
                     }
                 }
 
@@ -1073,7 +1059,6 @@ namespace Vorrennung
                 {
                     var spielzeit = beschleunigungsFaktoren.Sum(t => speedBlockSize / t) / samplingrate;
                     beschleunigungVeraendert.Invoke(this, beschleunigungsFaktoren, spielzeit, speedBlockSize, samplingrate);
-
                 }
                 //return beschleunigungsFaktoren;
                 if (grundBeschleunigungViaFFMPEG)
@@ -1325,20 +1310,22 @@ namespace Vorrennung
                             {
                                 aktbildbyte += schreibbar;
                             }
-                                      
+                            
                             if (zuschreiben > 0)
                             {
-                                if (ewritetask.IsCanceled || ewritetask.IsFaulted || ewritetask.IsCompleted) { ewritetask = writeprocess.StandardError.ReadToEndAsync(); }
-                                writeprocess.StandardInput.BaseStream.Write(inputbuffer, startindex, zuschreiben);
+                                if (ewritetask.IsCanceled || ewritetask.IsFaulted || ewritetask.IsCompleted)
+                                        ewritetask = writeprocess.StandardError.ReadToEndAsync();
+                                else if (writeprocess.StandardInput.BaseStream.CanWrite)
+                                    writeprocess.StandardInput.BaseStream.Write(inputbuffer, startindex,
+                                        zuschreiben);
                             }
-                      
+                            
                             verbleibend -= schreibbar;
                             startindex += schreibbar;
                         }
                     }
                 } while (bytezahl > 0);
                 System.Diagnostics.Trace.WriteLine($"Warte auf wunder {got} {skipcount}");
-           
                 System.Threading.Thread.Sleep(100);
             }
             System.Diagnostics.Trace.WriteLine($"Maxread: {maxread}");
@@ -1352,8 +1339,6 @@ namespace Vorrennung
             System.Diagnostics.Trace.WriteLine($"Byteskip: {skipcount} in frames {skipcount / bildByteCount}");
             setzeTeilFortschritt(90);
             if (grundBeschleunigungViaFFMPEG){
-
-            
                 var grundBeschleunigung = beschleunigungsParameter.minspeed;
                 var filterA = "atempo=1";
                 var filterV = $"setpts={1 / grundBeschleunigung}*PTS";

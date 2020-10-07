@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -58,7 +58,7 @@ namespace Vorrennung
                 double tmp = 0; 
                 getSetTrackBarValue(trackbars[i], ref tmp, false, true, 5, true,updowns[i]);
             }
-
+            
             infofenster.Show();
             infofenster.Hide();
 
@@ -71,7 +71,46 @@ namespace Vorrennung
             beschleuniger.beschleunigungVeraendert += speedChanged;
             bootingUp = false;
             Text = $@"{Tag} - Version {Assembly.GetExecutingAssembly().GetName().Version}";
+
+            try
+            {
+                var args = Environment.GetCommandLineArgs();
+                Trace.WriteLine($"{args.Length} cmd arguments");
+                for (var i = 0; i < args.Length; i++)
+                {
+                    Trace.WriteLine($"Arg {i}: {args[i]}");
+                    switch (args[i])
+                    {
+                        case "-i":
+                            beschleuniger.setInputFileName(args[i + 1]);
+                            break;
+                        case "-o":
+                            beschleuniger.setOutputFileName(args[i + 1]);
+                            break;
+                        case "-s":
+                            sprechTempoTrack.Value = Int32.Parse(args[i + 1]);
+                            break;
+                    }
+                }
+
+                if (args.Length > 2) // enter console-mode
+                {
+                    beschleuniger.beschleunige();
+                    beendenToolStripMenuItem_Click(this, null);
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show($@"Error while parsing cmd-parameters: {e}");
+            }
         }
+
+        public sealed override string Text
+        {
+            get { return base.Text; }
+            set { base.Text = value; }
+        }
+
         bool ignorechangeNumericChange;
         public void numericupdownchanged(object sender,EventArgs e)
         {
@@ -163,9 +202,10 @@ namespace Vorrennung
 
         public void speedChanged(object sender, List<double> parameter, double spielzeit, double zeitunterteilung, double samplingrate)
         {
+            if (!IsHandleCreated)
+                return;
             Invoke (new Action(()=>{
-                double ersparnis = 0;
-                ersparnis = beschleuniger.dauer - spielzeit * beschleuniger.beschleunigungsParameter.minspeed;
+                var ersparnis = beschleuniger.dauer - spielzeit * beschleuniger.beschleunigungsParameter.minspeed;
                 label3.Text = $"Vorraussichtliche Dauer: {getTimeCode((int) spielzeit)}";
                 label4.Text = $"Zeitersparnis : {getTimeCode((int) ersparnis)}";
                 infofenster.setBeschleunigung(parameter);
@@ -184,8 +224,9 @@ namespace Vorrennung
             {
                 lastges = (int)(wert * 100);
 
-              //  System.Diagnostics.Trace.WriteLine("geschanged");
-                Invoke(new Action(() => toolStripProgressBar1.Value = (int)(wert * 100)));
+                // System.Diagnostics.Trace.WriteLine("geschanged");
+                if(IsHandleCreated)
+                    Invoke(new Action(() => toolStripProgressBar1.Value = (int)(wert * 100)));
             }
         }
         public void teilfortschrittchanged(object sender, double wert)
@@ -194,8 +235,9 @@ namespace Vorrennung
             {
                 lastteil = (int)(wert * 100);
 
-                //System.Diagnostics.Trace.WriteLine("teilchanged");
-                Invoke(new Action(() => toolStripProgressBar2.Value = (int)(wert * 100)));
+                // System.Diagnostics.Trace.WriteLine("teilchanged");
+                if(IsHandleCreated)
+                    Invoke(new Action(() => toolStripProgressBar2.Value = (int)(wert * 100)));
             }
         }
         bool arbeitend;
@@ -212,9 +254,7 @@ namespace Vorrennung
             beschleuniger.AdditionalFFmpegAudioParams = toolStripTextBox3.Text;
             double unwichtig = 0;
             beschleuniger.useSola = checkBox3.Checked;
-
-
-
+            
             beschleuniger.beschleunigungsParameter.ableitungsglaettung = getSetTrackBarValue(trackBar8, ref unwichtig, false,false,10,true,!applytoupdowns?null:updowns[7]);// / (double)trackBar8.Maximum;
             beschleuniger.beschleunigungsParameter.maxableitung = getSetTrackBarValue(trackBar7, ref unwichtig, false, false, 10, true, !applytoupdowns ? null : updowns[6]);
             beschleuniger.beschleunigungsParameter.minableitung = getSetTrackBarValue(trackBar9, ref unwichtig, false, false, 10, true, !applytoupdowns ? null : updowns[8]);
@@ -252,10 +292,13 @@ namespace Vorrennung
             ignorechangeNumericChange = false;
             //System.Diagnostics.Trace.WriteLine("endsendparams");
             if (apply && !arbeitend) { arbeitend = true; doInBackground(() => { beschleuniger.refresh(); arbeitend = false; }, false); }
+
             setTexte();
         }
         void setTexte()
         {
+            if (!infofenster.IsHandleCreated)
+                return;
             label10.Text = $"{label10.Tag}";// +" " + beschleuniger.beschleunigungsParameter.minspeed;
             label8.Text = $"{label8.Tag}";// + " " + beschleuniger.beschleunigungsParameter.leise;
             label9.Text = $"{label9.Tag}";//+ " " + beschleuniger.beschleunigungsParameter.maxspeed;
@@ -315,7 +358,8 @@ namespace Vorrennung
             ffprobeOrt = beschleuniger.ffprobePfad;
             toolStripTextBox1.Text = ffmpegOrt;
             toolStripTextBox2.Text = ffprobeOrt;
-             toolStripTextBox3.Text=beschleuniger.AdditionalFFmpegAudioParams;
+            toolStripTextBox3.Text=beschleuniger.AdditionalFFmpegAudioParams;
+
             setTexte();
         }
 
